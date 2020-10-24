@@ -22,6 +22,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Determine composer cache directory
+        id: determine-composer-cache-directory
+        run: echo ::set-output name=directory::$(composer config cache-dir)
+
+      - name: Cache dependencies installed with composer
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.determine-composer-cache-directory.outputs.directory }}
+          key: php-${{ matrix.php-version }}-composer-${{ github.sha }}
+          restore-keys: php-${{ matrix.php-version }}-composer-
+
       - name: Download dependencies
         run: |
           composer update --no-interaction --prefer-dist --optimize-autoloader
@@ -48,9 +59,32 @@ jobs:
   psalm:
     name: Psalm
     runs-on: ubuntu-latest
+
     steps:
+      - name: Set up PHP
+        uses: shivammathur/setup-php@2.7.0
+        with:
+          php-version: '7.4'
+          coverage: none
+          tools: composer:v2
+
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Determine composer cache directory
+        id: determine-composer-cache-directory
+        run: echo ::set-output name=directory::$(composer config cache-dir)
+
+      - name: Cache dependencies installed with composer
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.determine-composer-cache-directory.outputs.directory }}
+          key: php-${{ matrix.php-version }}-composer-${{ github.sha }}
+          restore-keys: php-${{ matrix.php-version }}-composer-
+
+      - name: Download dependencies
+        run: |
+          composer update --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Psalm
         uses: docker://vimeo/psalm-github-actions:3.17.2

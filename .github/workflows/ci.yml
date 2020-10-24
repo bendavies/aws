@@ -14,18 +14,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.2', '7.3', '7.4', '8.0']
+        php-version: ['7.2', '7.3', '7.4', '8.0']
 
     steps:
       - name: Set up PHP
         uses: shivammathur/setup-php@2.7.0
         with:
-          php-version: ${{ matrix.php }}
+          php-version: ${{ matrix.php-version }}
           coverage: none
           tools: composer:v2
 
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Determine composer cache directory
+        id: determine-composer-cache-directory
+        run: echo ::set-output name=directory::$(composer config cache-dir)
+
+      - name: Cache dependencies installed with composer
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.determine-composer-cache-directory.outputs.directory }}
+          key: php-${{ matrix.php-version }}-composer-${{ github.sha }}
+          restore-keys: php-${{ matrix.php-version }}-composer-
 
       - name: Initialize tests
         run: make initialize -j 4
@@ -75,7 +86,7 @@ jobs:
 
       - name: Download dependencies
         env:
-          PHP_VERSION: ${{ matrix.php }}
+          PHP_VERSION: ${{ matrix.php-version }}
         run: |
           CURRENT_DIR=$(pwd)
           for COMPONENT in $(find src -maxdepth 4 -type f -name phpunit.xml.dist -printf '%h\n' | sort)
@@ -176,7 +187,7 @@ jobs:
         env:
           # Make sure we dont download awfully old Symfony versions.
           SYMFONY_REQUIRE: 4.4.*
-          PHP_VERSION: ${{ matrix.php }}
+          PHP_VERSION: ${{ matrix.php-version }}
         run: |
           CURRENT_DIR=$(pwd)
           for COMPONENT in $(find src -maxdepth 4 -type f -name phpunit.xml.dist -printf '%h\n' | sort)
@@ -232,6 +243,17 @@ jobs:
 
       - name: Initialize tests
         run: make initialize -j 4
+
+      - name: Determine composer cache directory
+        id: determine-composer-cache-directory
+        run: echo ::set-output name=directory::$(composer config cache-dir)
+
+      - name: Cache dependencies installed with composer
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.determine-composer-cache-directory.outputs.directory }}
+          key: php-${{ matrix.php-version }}-composer-${{ github.sha }}
+          restore-keys: php-${{ matrix.php-version }}-composer-
 
       - name: Download dependencies
         run: |
